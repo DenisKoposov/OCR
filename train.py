@@ -1,34 +1,15 @@
-# Training
-from tensorboardX import SummaryWriter
+import torch
+import numpy as np
+#from tensorboardX import SummaryWriter
 
-def load_model(model_class, path):
+def load_model(model_class, path, device):
     model = model_class()
     model.load_state_dict(torch.load(path)["state_dict"])
     model = model.to(device)
     return model
 
-def evaluate_model(models, train_loader, val_loader, criterion):
-    
-    results = {
-        "model": [],
-        "Train loss": [],
-        "Validation loss": [],
-        "Train accuracy": [],
-        "Validation accuracy": []
-    }
-    
-    for name, model in models:
-        train_loss, train_acc = validate(model, train_loader, criterion)
-        val_loss, val_acc = validate(model, val_loader, criterion)
-        results["model"].append(name)
-        results["Train loss"].append(train_loss)
-        results["Validation loss"].append(val_loss)
-        results["Train accuracy"].append(train_acc)
-        results["Validation accuracy"].append(val_acc)
-    
-    display(pd.DataFrame(results))    
 
-def validate(model, val_loader, criterion):
+def validate(model, val_loader, criterion, device):
     
     val_loss = 0.
     correct = 0
@@ -53,14 +34,14 @@ def validate(model, val_loader, criterion):
     return val_loss, val_acc
 
 def train(model, train_loader, val_loader, criterion, optimizer,
-          num_epochs, save_best, save_ckpt,
+          num_epochs, save_best, save_ckpt, device,
           val_each=100, print_each=10, start_from_ckpt=None):
     
     train_curve = []
     valid_curve = []
     epochs = []
     
-    writer = SummaryWriter()
+    #writer = SummaryWriter()
     best_val_loss = np.inf
     last_epoch = 0
     
@@ -80,7 +61,7 @@ def train(model, train_loader, val_loader, criterion, optimizer,
 
         for images, labels in train_loader:
             images = images.to(device)
-            labels = labels.to(device)
+            #labels = labels.to(device)
 
             # Forward pass
             outputs = model(images)
@@ -101,7 +82,7 @@ def train(model, train_loader, val_loader, criterion, optimizer,
 
             if epoch % val_each == 0 or epoch == 1:
 
-                val_loss, val_acc = validate(model, val_loader, criterion)
+                val_loss, val_acc = validate(model, val_loader, criterion, device)
                 
                 if val_loss < best_val_loss:
                     model_state = {
@@ -116,11 +97,11 @@ def train(model, train_loader, val_loader, criterion, optimizer,
                 valid_curve.append(val_loss)
                 epochs.append(epoch)
                 
-                writer.add_scalars('logs/loss', {
-                    'training': train_loss,
-                    'validation': val_loss
-                }, epoch)
-                writer.add_scalar('logs/val_accuracy', val_acc, epoch)
+                #writer.add_scalars('logs/loss', {
+                #    'training': train_loss,
+                #    'validation': val_loss
+                #}, epoch)
+                #writer.add_scalar('logs/val_accuracy', val_acc, epoch)
 
                 print('Epoch [{}/{}], Loss: {:.4f}, Val acc: {:.2f}' 
                    .format(epoch, last_epoch+num_epochs, train_loss, val_acc))
@@ -136,5 +117,5 @@ def train(model, train_loader, val_loader, criterion, optimizer,
         }
         torch.save(model_state, save_ckpt)
 
-    writer.close()
+    #writer.close()
     return train_curve, valid_curve, epochs
