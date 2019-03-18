@@ -62,6 +62,7 @@ def train(model, train_loader, val_loader, criterion, optimizer,
         for images, labels in train_loader:
             images = images.to(device)
             #labels = labels.to(device)
+            print(len(labels), len(labels[0]))
 
             # Forward pass
             outputs = model(images)

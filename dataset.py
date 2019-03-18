@@ -13,7 +13,7 @@ class WordImageDataset(Dataset):
     """ Some documantation"""
 
     def __init__(self, root_dir, annotation_file, transform=None, preload=None,
-                 size=(100, 32)):
+                 size=(124, 68)):
         """
         Args:
         """
