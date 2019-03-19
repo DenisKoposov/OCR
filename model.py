@@ -6,7 +6,7 @@ import torch.distributions as tdist
 
 class OCR_model(nn.Module):
   
-    def __init__(self, recursive_depth=1, max_word_length=20, embedded_size=512, rnn_hidden_size=1024):
+    def __init__(self, recursive_depth=1, max_word_length=24, embedded_size=512, rnn_hidden_size=1024):
         super().__init__()
     
         self.recursive_depth = recursive_depth
@@ -66,7 +66,7 @@ class OCR_model(nn.Module):
         self.embedded_size = embedded_size
         self.rnn_hidden_size = rnn_hidden_size
         
-        self.vocab = ['<SOW>', '<EOW>'] + list(string.printable[10:36])
+        self.vocab = ['<SOW>', '<EOW>'] + list(string.printable[:36])
         self.inv_vocab = {word: i for i, word in enumerate(self.vocab)}
         self.embedding = nn.Embedding(len(self.vocab), self.embedded_size)
         
@@ -76,9 +76,9 @@ class OCR_model(nn.Module):
         self.rnn2 = nn.GRUCell(4096, self.embedded_size)
 
         self.output_lin = nn.Linear(self.embedded_size, len(self.vocab)) # number of eng characters + <sow>, <eow>
-  
-    def forward(self, input):
 
+
+    def forward(self, input):
         #recursive CNN
         x = self.cnn1_untied(input)
         for _ in range(self.recursive_depth):
@@ -129,11 +129,12 @@ class OCR_model(nn.Module):
             hidden2 = input
             input_log = F.log_softmax(self.output_lin(input), dim=1)
 
-            if torch.argmax(input_log) == 1:
-                break
+            #if torch.argmax(input_log) == 1:
+            #    break
 
             y.append(input_log)
 
+        #y.extend([1] * (self.max_word_length - len(y))) 
         y = torch.stack(y, dim=1)
         return y
 

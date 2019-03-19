@@ -1,3 +1,4 @@
+import sys
 import numpy as np
 import torch
 import torch.optim as optim
@@ -9,6 +10,8 @@ from model import OCR_model
 from train import train, validate, load_model
 from dataset import WordImageDataset
 
+# Command line arguments
+root_dir = sys.argv[1]
 # cuda device
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -21,7 +24,7 @@ optimizer = optim.SGD(model.parameters(), lr=2e-3)
 scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.2, patience=2)
 
 # Loss function
-criterion = nn.CrossEntropyLoss()
+criterion = nn.NLLLoss(ignore_index=1)
 
 # Load data
 train_transform = transforms.Compose([
@@ -37,15 +40,15 @@ test_transform = transforms.Compose([
     ])
 
 bs = 32
-n_workers = 6
+n_workers = 9
 
-train_dataset = WordImageDataset("../synth90k", "annotation_train.txt", train_transform)
+train_dataset = WordImageDataset(root_dir, "annotation_train_new.txt", train_transform, max_samples=600000)
 train_loader = DataLoader(train_dataset, batch_size=bs, shuffle=True, num_workers=n_workers)
 
-val_dataset = WordImageDataset("../synth90k", "annotation_val.txt", test_transform)
+val_dataset = WordImageDataset(root_dir, "annotation_val_new.txt", test_transform, max_samples=100000)
 val_loader = DataLoader(val_dataset, batch_size=bs, num_workers=n_workers)
 
-test_dataset = WordImageDataset("../synth90k", "annotation_test.txt", test_transform)
+test_dataset = WordImageDataset(root_dir, "annotation_test_new.txt", test_transform, max_samples=100000)
 test_loader = DataLoader(test_dataset, batch_size=bs, num_workers=n_workers)
 
 # Train

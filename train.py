@@ -1,5 +1,6 @@
 import torch
 import numpy as np
+from tqdm import tqdm
 #from tensorboardX import SummaryWriter
 
 def load_model(model_class, path, device):
@@ -21,12 +22,24 @@ def validate(model, val_loader, criterion, device):
         for images, labels in val_loader:
             images = images.to(device)
             labels = labels.to(device)
+            target = labels.detach().cpu().numpy()
+            labels = labels.view(-1)
+
+            # Forward pass
             outputs = model(images)
-            _, predicted = torch.max(outputs.detach(), 1)
+            predicted = torch.argmax(outputs.detach().cpu(), dim=2).numpy()
+            outputs = outputs.view(-1, outputs.size(-1))
+            #print(outputs.size(), labels.size())
             loss = criterion(outputs, labels)
             val_loss += loss.item()
             total += labels.size(0)
-            correct += (predicted == labels).sum().item()
+
+            # Compare predicted and true words
+            for i in labels.size(0):
+                l = np.where(target[i, :] == -100)[0]
+
+                if np.all(predicted[i, :l] == target[i, :l]):
+                    correct += 1
 
     val_loss /= len(val_loader)
     val_acc = correct / total
@@ -56,24 +69,40 @@ def train(model, train_loader, val_loader, criterion, optimizer,
         train_acc = 0.
         val_loss = 0.
         val_acc = 0.
+        iter = 0
         # Train model
         model.train()
 
-        for images, labels in train_loader:
+        for images, labels in tqdm(train_loader, total=len(train_loader)):
+            iter += 1
             images = images.to(device)
-            #labels = labels.to(device)
-            print(len(labels), len(labels[0]))
+            labels = labels.to(device)
 
             # Forward pass
             outputs = model(images)
+
+            if iter % 100 == 0:
+                predicted = torch.argmax(outputs.detach().cpu(), dim=2).numpy()[0, :]
+                true = labels.detach().cpu().numpy()[0, :]
+                word = "".join([model.vocab[code] for code in predicted if code != -100])
+                true = "".join([model.vocab[code] for code in true if code != -100])
+                print(word)
+                print(true)
+
+            labels = labels.view(-1)
+            outputs = outputs.view(-1, outputs.size(-1))
+            #print(outputs.size(), labels.size())
             loss = criterion(outputs, labels)
             train_loss += loss.item()
+
+            if iter % 100 == 0:
+                print(loss.item())
 
             # Backward and optimize
             optimizer.zero_grad()
             loss.backward()
             # Clip gradients
-            nn.utils.clip_grad_value_(model.parameters(), 10)
+            torch.nn.utils.clip_grad_value_(model.parameters(), 10)
             # Optimize
             optimizer.step()
 
